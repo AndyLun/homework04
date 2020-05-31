@@ -46,18 +46,24 @@ void getSamples(Arguments *in, Reply *out);
 RPCFunction rpcSamples(&getSamples, "getSamp");
 
 int samples = 0;
-float sRate = 0.5;
+bool hRate = false;
+int hrLeft = 0;
 Thread t_acc;
+float buffer[3][100];
+//int bi = 0;
 
 void getSamples(Arguments *in, Reply *out) {
 	xbee.printf("%02d\n", samples);
+	for(int i = 0; i < samples; i++) {
+		xbee.printf("%1.4f,%1.4f,%1.4f\n", buffer[0][i], buffer[1][i], buffer[2][i]);
+		wait(0.05);
+	}
 	samples = 0;
 }
 
 void getAcc()
 {
 	while(true) {
-		samples++;
 		int16_t acc16;
 		uint8_t res[6];
 		FXOS8700CQ_readRegs(FXOS8700Q_OUT_X_MSB, res, 6);
@@ -82,10 +88,30 @@ void getAcc()
 		// 		tt[1], res[2], res[3],
 		// 		tt[2], res[4], res[5]);
 
-		if(abs(tt[0]) > 0.5 || abs(tt[1] > 0.5)) sRate = 0.1;
-		else sRate = 0.5;
+		buffer[0][samples] = tt[0];
+		buffer[1][samples] = tt[1];
+		buffer[2][samples] = tt[2];
+		samples++;
 
-		wait(sRate);
+		if(samples >= 99) samples = 99;
+
+		/*
+		if(abs(tt[0]) >= 0.5 || abs(tt[1] >= 0.5)) {
+			if(!hRate) {
+				hRate = true;
+				hrLeft = 10;
+			}
+		}
+
+		if(hRate) {
+			hrLeft--;
+			if(hrLeft <= 0) hRate = false;
+		}
+
+		if(hRate) wait(0.1);
+		else wait(0.5);
+		*/
+		wait(0.5);
 	}
 }
 
